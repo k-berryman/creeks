@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Using your environment variable for production safety
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1Ijoia2FpdGxpbmJlcnJ5bWFud2ViZGV2IiwiYSI6ImNtbnBiZ2Q0eTJmd2gycXE2aDByZTV3NGEifQ.UuYKRnm3UmXWe3-dv-pinA';
 
 const TOWNS = [
@@ -35,13 +34,12 @@ export default function TownTour() {
       style: 'mapbox://styles/mapbox/satellite-streets-v12', 
       center: TOWNS[0].coords as [number, number], 
       zoom: 12,
-      pitch: 70, // Cinematic 3D angle
+      pitch: 70, 
       bearing: -15,
       antialias: true
     });
 
     map.current.on('style.load', () => {
-      // ACTIVATE 3D TERRAIN ENGINE
       map.current?.addSource('mapbox-dem', {
         'type': 'raster-dem',
         'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
@@ -51,7 +49,6 @@ export default function TownTour() {
       
       map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
 
-      // ADD ATMOSPHERIC FOG
       map.current?.setFog({
         'range': [0.5, 10],
         'color': '#ffffff',
@@ -91,23 +88,24 @@ export default function TownTour() {
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-slate-950 overflow-hidden">
-      {/* MAP: Fixed Top 60% on Mobile */}
+      {/* MAP: Fixed Top 60% */}
       <div className="w-full h-[60vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative">
         <div ref={mapContainer} className="w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-80px_60px_rgba(2,6,23,1)]" />
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-100px_80px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* TEXT: Bottom 40% on Mobile */}
+      {/* TEXT: Bottom 40% - Moved up via pt-0 and smaller spacing */}
       <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0">
         {TOWNS.map((town) => (
           <section 
             key={town.name} 
             data-town={town.name}
-            className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-center px-8 md:px-12 bg-slate-950/90 backdrop-blur-sm md:bg-transparent"
+            // Reduced padding-top (pt-4) to move text closer to map
+            className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-start pt-8 md:justify-center px-8 md:px-12 bg-slate-950/90 backdrop-blur-sm md:bg-transparent"
           >
             <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-1">Hill Realty Tour</span>
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-3">{town.name}</h2>
-            <div className="w-8 h-1 bg-blue-600 mb-3" />
+            <h2 className="text-3xl md:text-5xl font-black text-white mb-2">{town.name}</h2>
+            <div className="w-8 h-1 bg-blue-600 mb-4" />
             <p className="text-slate-400 text-sm md:text-lg leading-relaxed max-w-md">
               {town.desc}
             </p>
