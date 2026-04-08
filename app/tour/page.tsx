@@ -31,14 +31,33 @@ export default function TownTour() {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-streets-v12',
-      center: TOWNS[0].coords, // Start at the North
-      zoom: 13,
-      pitch: 45, // Adds a cool 3D perspective
-      bearing: -17
+      style: 'mapbox://styles/mapbox/satellite-streets-v12', 
+      center: TOWNS[0].coords, 
+      zoom: 12, // Starting a bit further out loads fewer tiles
+      pitch: 60, // 60 is the "sweet spot" for performance vs 3D look
+      bearing: -15, 
+      antialias: false, // Disabling this saves a lot of GPU power
+      trackResize: false // Prevents constant re-calculations
     });
 
-    // Intersection Observer to detect which town is on screen
+    map.current.on('style.load', () => {
+      // Optimized 3D Terrain
+      map.current?.addSource('mapbox-dem', {
+        'type': 'raster-dem',
+        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        'tileSize': 512, // Standard tile size is faster than 256
+      });
+      
+      map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.2 });
+
+      // Simplified Fog
+      map.current?.setFog({
+        'range': [1, 10],
+        'color': 'white',
+        'horizon-blend': 0.1
+      });
+    });
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -47,14 +66,15 @@ export default function TownTour() {
           if (town && map.current) {
             map.current.flyTo({
               center: town.coords,
-              zoom: 13,
-              speed: 0.8, // Smooth flight speed
-              curve: 1
+              zoom: 12.5,
+              speed: 0.4, // Slower speed gives the map time to load tiles
+              curve: 1,
+              essential: true
             });
           }
         }
       });
-    }, { threshold: 0.7 });
+    }, { threshold: 0.6 });
 
     document.querySelectorAll('.town-section').forEach(section => observer.observe(section));
 
@@ -65,29 +85,26 @@ export default function TownTour() {
   }, []);
 
   return (
-    <main className="flex min-h-screen bg-slate-950">
-      {/* LEFT: THE STORY (Scrolling) */}
-      <div className="w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory no-scrollbar z-10 bg-slate-950/80 backdrop-blur-md border-r border-white/10">
+    <main className="flex min-h-screen bg-slate-950 overflow-hidden">
+      {/* SCROLLING CONTENT */}
+      <div className="w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 bg-slate-950/70 backdrop-blur-sm border-r border-white/5 scrollbar-hide">
         {TOWNS.map((town) => (
           <section 
             key={town.name} 
             data-town={town.name}
-            className="town-section h-screen snap-start flex flex-col justify-center px-10"
+            className="town-section h-screen snap-start flex flex-col justify-center px-12"
           >
-            <span className="text-blue-500 font-black text-xs uppercase tracking-[0.3em] mb-2">Hill Realty Tour</span>
-            <h2 className="text-5xl font-black text-white mb-6 leading-tight">{town.name}</h2>
-            <div className="w-12 h-1 bg-blue-600 mb-6" />
-            <p className="text-slate-400 text-lg leading-relaxed font-medium italic">
-              "{town.desc}"
-            </p>
+            <span className="text-blue-500 font-bold text-xs uppercase tracking-widest mb-2">Hill Realty Tour</span>
+            <h2 className="text-5xl font-black text-white mb-6">{town.name}</h2>
+            <p className="text-slate-400 text-lg leading-relaxed">{town.desc}</p>
           </section>
         ))}
       </div>
 
-      {/* RIGHT: THE MAP (Fixed) */}
-      <div className="w-2/3 h-screen sticky top-0">
+      {/* STICKY MAP */}
+      <div className="w-2/3 h-screen relative">
         <div ref={mapContainer} className="w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.8)]" />
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]" />
       </div>
     </main>
   );
