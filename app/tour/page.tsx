@@ -58,9 +58,10 @@ export default function TownTour() {
       });
     });
 
+    // CENTERED OBSERVER: Only triggers when the town is locked in the middle
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.8) {
           const townName = entry.target.getAttribute('data-town');
           const town = TOWNS.find(t => t.name === townName);
           if (town && map.current) {
@@ -76,7 +77,10 @@ export default function TownTour() {
           }
         }
       });
-    }, { threshold: 0.6 });
+    }, { 
+      threshold: [0.8], 
+      rootMargin: "-10% 0px -10% 0px" // Focuses detection to the screen center
+    });
 
     document.querySelectorAll('.town-section').forEach(section => observer.observe(section));
 
@@ -88,31 +92,33 @@ export default function TownTour() {
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-slate-950 overflow-hidden">
-      {/* MAP: Fixed Top 60% */}
+      {/* MAP VIEW: 60% Height and Fixed at top on Mobile */}
       <div className="w-full h-[60vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative">
         <div ref={mapContainer} className="w-full h-full" />
         <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-100px_80px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* TEXT: Bottom 40% - Moved up via pt-0 and smaller spacing */}
-      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0">
+      {/* STORY CONTENT: 40% Height Scrolling Container */}
+      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0 pb-[40vh]">
         {TOWNS.map((town) => (
           <section 
             key={town.name} 
             data-town={town.name}
-            // Reduced padding-top (pt-4) to move text closer to map
-            className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-start pt-8 md:justify-center px-8 md:px-12 bg-slate-950/90 backdrop-blur-sm md:bg-transparent"
+            // snap-center and h-[40vh] ensure perfect centering on mobile
+            className="town-section h-[40vh] md:h-screen snap-center flex flex-col justify-center px-8 md:px-12 bg-slate-950/90 backdrop-blur-sm md:bg-transparent"
           >
-            <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-1">Hill Realty Tour</span>
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-2">{town.name}</h2>
-            <div className="w-8 h-1 bg-blue-600 mb-4" />
-            <p className="text-slate-400 text-sm md:text-lg leading-relaxed max-w-md">
-              {town.desc}
-            </p>
+            <div className="flex flex-col items-start">
+              <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-1">Hill Realty Tour</span>
+              <h2 className="text-3xl md:text-5xl font-black text-white mb-2 leading-none">{town.name}</h2>
+              <div className="w-8 h-1 bg-blue-600 mb-4" />
+              <p className="text-slate-400 text-sm md:text-lg leading-relaxed max-w-md">
+                {town.desc}
+              </p>
+            </div>
           </section>
         ))}
-        {/* Mobile Spacer */}
-        <div className="h-[20vh] md:hidden" />
+        {/* Spacer to allow the final town to scroll and center */}
+        <div className="h-[40vh] md:hidden" />
       </div>
     </main>
   );
