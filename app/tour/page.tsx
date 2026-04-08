@@ -32,7 +32,7 @@ export default function TownTour() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-streets-v12', 
-      center: TOWNS[0].coords, 
+      center: TOWNS[0].coords as [number, number], 
       zoom: 12, // Starting a bit further out loads fewer tiles
       pitch: 60, // 60 is the "sweet spot" for performance vs 3D look
       bearing: -15, 
