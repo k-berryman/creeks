@@ -41,55 +41,57 @@ export default function TownTour() {
 
     map.current.on('style.load', () => {
       // 3D TERRAIN
-      map.current?.addSource('mapbox-dem', {
-        'type': 'raster-dem',
-        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-        'tileSize': 512
-      });
+      map.current?.addSource('mapbox-dem', { 'type': 'raster-dem', 'url': 'mapbox://mapbox.mapbox-terrain-dem-v1', 'tileSize': 512 });
       map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
 
-      // GHOST TARGET LAYER (For clicking)
-      map.current?.addSource('creeks-data', {
-        type: 'vector',
-        url: 'mapbox://kaitlinberrymanwebdev.cmnpc2076003w01qo2zxb24pz' 
+      // DYNAMIC TOWN LABEL LAYER (Starts empty)
+      map.current?.addSource('town-labels', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
       });
 
       map.current?.addLayer({
-        id: 'creeks-target',
-        type: 'line',
-        source: 'creeks-data',
-        'source-layer': 'creeks-1-6059c4',
-        paint: { 'line-width': 45, 'line-opacity': 0 }
+        id: 'town-label-layer',
+        type: 'symbol',
+        source: 'town-labels',
+        layout: {
+          'text-field': ['get', 'title'],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 32, // BOLDER & LARGER
+          'text-anchor': 'center', // HORIZONTALLY CENTERED
+          'text-justify': 'center'
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#000000',
+          'text-halo-width': 2.5
+        }
       });
     });
 
-    // MAGNETIC CLICK LOGIC
-    map.current?.on('click', 'creeks-target', (e) => {
-      const feature = e.features?.[0];
-      if (!feature) return;
-      const name = feature.properties?.FULLNAME || feature.properties?.name || "Eastern Shore Waterway";
-
-      new mapboxgl.Popup({ closeButton: false, offset: 15 })
-        .setLngLat(e.lngLat)
-        .setHTML(`
-          <div style="background-color: #0369a1; color: white; padding: 12px 18px; border-radius: 12px; font-family: sans-serif;">
-            <p style="margin: 0; font-size: 10px; text-transform: uppercase; font-weight: 800; opacity: 0.8;">ESVA Waterway</p>
-            <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 900;">${name}</p>
-          </div>
-        `)
-        .addTo(map.current!);
-    });
-
-    // SCROLL OBSERVER - Now more sensitive for mobile swiping
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
           const townName = entry.target.getAttribute('data-town');
           const town = TOWNS.find(t => t.name === townName);
+          
           if (town && map.current) {
+            // REFRESH THE CENTERED LABEL
+            const source = map.current.getSource('town-labels') as mapboxgl.GeoJSONSource;
+            if (source) {
+              source.setData({
+                type: 'FeatureCollection',
+                features: [{
+                  type: 'Feature',
+                  geometry: { type: 'Point', coordinates: town.coords },
+                  properties: { title: town.name }
+                }]
+              });
+            }
+
             map.current.flyTo({
               center: town.coords as [number, number],
-              zoom: 13.2,
+              zoom: 13.8, // Slightly tighter zoom for town centers
               pitch: 70,
               speed: 0.6,
               essential: true
@@ -97,42 +99,28 @@ export default function TownTour() {
           }
         }
       });
-    }, { 
-      threshold: 0.5 // Triggers as soon as 50% of the town description is visible
-    });
+    }, { threshold: [0.5] });
 
     document.querySelectorAll('.town-section').forEach(section => observer.observe(section));
-
-    return () => {
-      observer.disconnect();
-      map.current?.remove();
-    };
+    return () => { observer.disconnect(); map.current?.remove(); };
   }, []);
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-slate-950 overflow-hidden">
-      {/* MAP VIEW: 60% Height and Fixed Top */}
-      <div className="w-full h-[60vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative">
+      {/* MAP VIEW */}
+      <div className="w-full h-[55vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
         <div ref={mapContainer} className="w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-100px_80px_rgba(2,6,23,1)]" />
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-120px_100px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* STORY CONTENT: 40% Height Scrolling */}
-      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0 pb-[60vh]">
+      {/* STORY CONTENT */}
+      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[55vh] md:mt-0 pb-[45vh]">
         {TOWNS.map((town) => (
-          <section 
-            key={town.name} 
-            data-town={town.name}
-            className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-center px-8 md:px-12 bg-slate-950/90 backdrop-blur-sm md:bg-transparent"
-          >
-            <div className="flex flex-col items-start py-4">
-              <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-1">Hill Realty Tour</span>
-              <h2 className="text-3xl md:text-5xl font-black text-white mb-2 leading-none">{town.name}</h2>
-              <div className="w-8 h-1 bg-blue-600 mb-4" />
-              <p className="text-slate-400 text-sm md:text-lg leading-relaxed max-w-md italic">
-                "{town.desc}"
-              </p>
-            </div>
+          <section key={town.name} data-town={town.name} className="town-section h-[45vh] md:h-screen snap-center flex flex-col justify-start pt-12 px-8 md:px-12 bg-slate-950/90 backdrop-blur-sm md:bg-transparent" >
+            <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-1">Hill Realty Tour</span>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-2 leading-none">{town.name}</h2>
+            <div className="w-10 h-1 bg-blue-600 mb-4" />
+            <p className="text-slate-400 text-sm md:text-lg leading-relaxed max-w-md italic">"{town.desc}"</p>
           </section>
         ))}
       </div>
