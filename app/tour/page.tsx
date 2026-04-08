@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2FpdGxpbmJlcnJ5bWFud2ViZGV2IiwiYSI6ImNtbnBiZ2Q0eTJmd2gycXE2aDByZTV3NGEifQ.UuYKRnm3UmXWe3-dv-pinA';
+// Using your environment variable for production safety
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1Ijoia2FpdGxpbmJlcnJ5bWFud2ViZGV2IiwiYSI6ImNtbnBiZ2Q0eTJmd2gycXE2aDByZTV3NGEifQ.UuYKRnm3UmXWe3-dv-pinA';
 
 const TOWNS = [
   { name: "Greenbackville", coords: [-75.405, 38.001], desc: "The northern gateway to the Eastern Shore, where Maryland meets Virginia's coastal charm." },
@@ -34,14 +35,30 @@ export default function TownTour() {
       style: 'mapbox://styles/mapbox/satellite-streets-v12', 
       center: TOWNS[0].coords as [number, number], 
       zoom: 12,
-      pitch: 60,
+      pitch: 70, // Cinematic 3D angle
       bearing: -15,
-      antialias: false
+      antialias: true
     });
 
     map.current.on('style.load', () => {
-      map.current?.addSource('mapbox-dem', { 'type': 'raster-dem', 'url': 'mapbox://mapbox.mapbox-terrain-dem-v1', 'tileSize': 512 });
-      map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.2 });
+      // ACTIVATE 3D TERRAIN ENGINE
+      map.current?.addSource('mapbox-dem', {
+        'type': 'raster-dem',
+        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        'tileSize': 512,
+        'maxzoom': 14
+      });
+      
+      map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+
+      // ADD ATMOSPHERIC FOG
+      map.current?.setFog({
+        'range': [0.5, 10],
+        'color': '#ffffff',
+        'high-color': '#add8e6',
+        'space-color': '#d8f2ff',
+        'horizon-blend': 0.1
+      });
     });
 
     const observer = new IntersectionObserver((entries) => {
@@ -50,37 +67,54 @@ export default function TownTour() {
           const townName = entry.target.getAttribute('data-town');
           const town = TOWNS.find(t => t.name === townName);
           if (town && map.current) {
-            map.current.flyTo({ center: town.coords as [number, number], zoom: 12.5, speed: 0.4, essential: true });
+            map.current.flyTo({
+              center: town.coords as [number, number],
+              zoom: 13.5,
+              pitch: 70,
+              bearing: -20,
+              speed: 0.5,
+              curve: 1.2,
+              essential: true
+            });
           }
         }
       });
-    }, { threshold: 0.5 });
+    }, { threshold: 0.6 });
 
     document.querySelectorAll('.town-section').forEach(section => observer.observe(section));
-    return () => { observer.disconnect(); map.current?.remove(); };
+
+    return () => {
+      observer.disconnect();
+      map.current?.remove();
+    };
   }, []);
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-slate-950 overflow-hidden">
-      {/* MAP: Top on Mobile (40% height), Right on Desktop (2/3 width) */}
-      <div className="w-full h-[40vh] md:h-screen md:w-2/3 md:order-2 sticky top-0 md:relative">
+      {/* MAP: Fixed Top 60% on Mobile */}
+      <div className="w-full h-[60vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative">
         <div ref={mapContainer} className="w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]" />
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-80px_60px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* TEXT: Bottom on Mobile, Left on Desktop */}
-      <div className="w-full md:w-1/3 h-[60vh] md:h-screen overflow-y-scroll snap-y snap-mandatory z-10 bg-slate-950/80 backdrop-blur-sm md:border-r border-white/5 scrollbar-hide md:order-1">
+      {/* TEXT: Bottom 40% on Mobile */}
+      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0">
         {TOWNS.map((town) => (
           <section 
             key={town.name} 
             data-town={town.name}
-            className="town-section h-[60vh] md:h-screen snap-start flex flex-col justify-center px-8 md:px-12"
+            className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-center px-8 md:px-12 bg-slate-950/90 backdrop-blur-sm md:bg-transparent"
           >
-            <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-2">Hill Realty Tour</span>
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-4">{town.name}</h2>
-            <p className="text-slate-400 text-sm md:text-lg leading-relaxed">{town.desc}</p>
+            <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-1">Hill Realty Tour</span>
+            <h2 className="text-3xl md:text-5xl font-black text-white mb-3">{town.name}</h2>
+            <div className="w-8 h-1 bg-blue-600 mb-3" />
+            <p className="text-slate-400 text-sm md:text-lg leading-relaxed max-w-md">
+              {town.desc}
+            </p>
           </section>
         ))}
+        {/* Mobile Spacer */}
+        <div className="h-[20vh] md:hidden" />
       </div>
     </main>
   );
