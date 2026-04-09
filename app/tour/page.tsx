@@ -9,7 +9,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1Ijoia2FpdGx
 const TOWNS = [
   { name: "Greenbackville", coords: [-75.405, 38.001], desc: "The northern gateway where Maryland meets Virginia's coastal charm.", attractions: ["Captain's Cove Golf", "Bayside Marina", "Quiet Kayak Launches"] },
   { name: "Chincoteague", coords: [-75.378, 37.933], desc: "Home of the wild ponies and pristine Atlantic beaches.", attractions: ["Assateague Lighthouse", "Wild Pony Viewing", "Misty Museum"] },
-  { name: "Saxis", coords: [-75.720, 37.923], desc: "A crabbing village with sunset views like no other.", attractions: ["Saxis Island Museum", "Wildlife Area", "Seafood Dining"] },
+  { name: "Saxis", coords: [-75.720, 37.923], desc: "A true crabbing village with sunset views like no other.", attractions: ["Saxis Island Museum", "Wildlife Area", "Seafood Dining"] },
   { name: "Parksley", coords: [-75.649, 37.790], desc: "A historic railroad town with beautiful architecture.", attractions: ["Railway Museum", "Historic Five-and-Dime", "Town Square"] },
   { name: "Accomac", coords: [-75.666, 37.722], desc: "The historic county seat, filled with 18th-century heritage.", attractions: ["Ker Place Museum", "Historic Court Green", "Federal Mansions"] },
   { name: "Onancock", coords: [-75.743, 37.711], desc: "A vibrant port town known for arts and fine dining.", attractions: ["Tangier Ferry", "Historic Wharf District", "North Street Playhouse"] },
@@ -75,32 +75,30 @@ export default function TownTour() {
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-slate-950 overflow-hidden">
-      {/* BRANDING BADGE */}
       <div className="fixed top-4 left-4 z-50 bg-blue-600/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg border border-blue-400/50">
         <span className="text-white font-black text-[9px] uppercase tracking-widest">Hill Realty Tour</span>
       </div>
 
-      {/* MAP VIEW: 70% Height on mobile for that "Big" feel */}
-      <div className="w-full h-[70vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
+      {/* MAP VIEW: Reduced to 65vh to ensure text clears the bottom bar */}
+      <div className="w-full h-[65vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
         <div ref={mapContainer} className="w-full h-full" />
-        {/* Deeper shadow to blend the text area into the map */}
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-150px_120px_rgba(2,6,23,1)]" />
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-140px_100px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* STORY CONTENT: Overlaps the bottom of the map */}
-      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0 pb-[100vh]">
+      {/* STORY CONTENT: Tighter cards and padding */}
+      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[55vh] md:mt-0 pb-[100vh]">
         {TOWNS.map((town) => (
-          <section key={town.name} data-town={town.name} className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-end pb-8 px-8 md:px-12 md:bg-transparent" >
-            <div className="bg-slate-950/60 backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-2xl">
-              <h2 className="text-3xl font-black text-white mb-1 leading-none">{town.name}</h2>
-              <div className="w-8 h-0.5 bg-blue-600 mb-3" />
-              <p className="text-slate-300 text-xs leading-relaxed italic mb-4">"{town.desc}"</p>
+          <section key={town.name} data-town={town.name} className="town-section h-[45vh] md:h-screen snap-start flex flex-col justify-end pb-12 px-6 md:px-12" >
+            <div className="bg-slate-950/70 backdrop-blur-md p-5 rounded-2xl border border-white/10 shadow-2xl">
+              <h2 className="text-2xl md:text-5xl font-black text-white mb-0.5 leading-none">{town.name}</h2>
+              <div className="w-8 h-0.5 bg-blue-600 mb-2" />
+              <p className="text-slate-300 text-[11px] leading-relaxed italic mb-3">"{town.desc}"</p>
               
               <div className="space-y-1">
                 <span className="text-blue-500 font-bold text-[8px] uppercase tracking-widest">Attractions</span>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {town.attractions.map(attr => (
-                    <span key={attr} className="text-slate-400 text-[10px] bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                    <span key={attr} className="text-slate-400 text-[9px] bg-white/5 px-2 py-0.5 rounded border border-white/5 whitespace-nowrap">
                        {attr}
                     </span>
                   ))}
@@ -109,7 +107,6 @@ export default function TownTour() {
             </div>
           </section>
         ))}
-        {/* SPACER FOR CAPE CHARLES */}
         <div className="h-[100vh] pointer-events-none" />
       </div>
     </main>
