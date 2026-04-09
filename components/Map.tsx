@@ -4,17 +4,18 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1Ijoia2FpdGxpbmJlcnJ5bWFud2ViZGV2IiwiYSI6ImNtbnBiZ2Q0eTJmd2gycXE2aDByZTV3NGEifQ.UuYKRnm3UmXWe3-dv-pinA';
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1Ijoia2FpdGxpbmJlcnJ5bWFud2ViZGV2IiwiYSI6ImNtbnBiZ2Q0eTJmd2gycXE2aDByZTV3NGEifQ.UuYKRnm3UmXWe3-dv-pinA'; 
 
 export default function CreekMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  
   const [showCreeks, setShowCreeks] = useState(true);
   const [showFlood, setShowFlood] = useState(false);
 
-  // IDs from your Mapbox Studio
+  // IDs - Verify these in Studio one last time
   const CREEK_LAYER_ID = 'creeks-1-6059c4';
-  const FLOOD_LAYER_ID = 'Master_Flood_Zones-json';
+  const FLOOD_LAYER_ID = 'Master_Flood_Zones-json'; 
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -23,43 +24,58 @@ export default function CreekMap() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/kaitlinberrymanwebdev/cmnpc2076003w01qo2zxb24pz',
-      center: [-75.8, 37.6] as [number, number],
+      center: [-75.8, 37.6] as [number, number], 
       zoom: 9,
     });
 
-    // Helper function to force visibility
-    const syncLayers = () => {
-      if (!map.current?.isStyleLoaded()) return;
-      
-      if (map.current.getLayer(CREEK_LAYER_ID)) {
-        map.current.setLayoutProperty(CREEK_LAYER_ID, 'visibility', showCreeks ? 'visible' : 'none');
-      }
-      if (map.current.getLayer(FLOOD_LAYER_ID)) {
-        map.current.setLayoutProperty(FLOOD_LAYER_ID, 'visibility', showFlood ? 'visible' : 'none');
-      }
-    };
+    map.current.on('load', () => {
+      // Restore the clicks - this is the part you need for the demo!
+      map.current?.on('click', (e) => {
+        const bbox: [mapboxgl.PointLike, mapboxgl.PointLike] = [
+          [e.point.x - 15, e.point.y - 15],
+          [e.point.x + 15, e.point.y + 15]
+        ];
 
-    map.current.on('style.load', syncLayers);
-    map.current.on('idle', syncLayers);
+        const features = map.current?.queryRenderedFeatures(bbox, {
+          layers: [CREEK_LAYER_ID]
+        });
+
+        if (!features?.length) return;
+        const props = features[0].properties;
+        const name = props?.FULLNAME || props?.name || "Eastern Shore Waterway";
+
+        new mapboxgl.Popup({ closeButton: false, offset: 15 })
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="background-color: #0369a1; color: white; padding: 12px 18px; border-radius: 12px; font-family: sans-serif;">
+              <p style="margin: 0; font-size: 10px; text-transform: uppercase; font-weight: 800; opacity: 0.8;">ESVA Waterway</p>
+              <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 900;">${name}</p>
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+    });
 
     return () => map.current?.remove();
   }, []);
 
-  // FORCE UPDATE ON STATE CHANGE
+  // RESTORED TOGGLE: Using color/opacity instead of visibility to prevent crashes
   useEffect(() => {
     if (!map.current) return;
 
-    // We use a small timeout to let the React state finish before pushing to Mapbox
-    const timer = setTimeout(() => {
+    const update = () => {
       if (map.current?.getLayer(CREEK_LAYER_ID)) {
-        map.current.setLayoutProperty(CREEK_LAYER_ID, 'visibility', showCreeks ? 'visible' : 'none');
+        // Instead of 'none', we just make it transparent and thin
+        map.current.setPaintProperty(CREEK_LAYER_ID, 'line-opacity', showCreeks ? 1 : 0);
+        map.current.setPaintProperty(CREEK_LAYER_ID, 'line-width', showCreeks ? 3 : 0);
       }
       if (map.current?.getLayer(FLOOD_LAYER_ID)) {
-        map.current.setLayoutProperty(FLOOD_LAYER_ID, 'visibility', showFlood ? 'visible' : 'none');
+        map.current.setPaintProperty(FLOOD_LAYER_ID, 'fill-opacity', showFlood ? 0.35 : 0);
       }
-    }, 100);
+    };
 
-    return () => clearTimeout(timer);
+    if (map.current.isStyleLoaded()) update();
+    else map.current.once('idle', update);
   }, [showCreeks, showFlood]);
 
   return (
