@@ -58,8 +58,7 @@ export default function TownTour() {
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        // More sensitive threshold (0.4) to ensure flight triggers on small screens
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
+        if (entry.isIntersecting) {
           const townName = entry.target.getAttribute('data-town');
           const town = TOWNS.find(t => t.name === townName);
           if (town && map.current) {
@@ -68,7 +67,7 @@ export default function TownTour() {
           }
         }
       });
-    }, { threshold: [0.4] });
+    }, { threshold: 0.5 });
 
     document.querySelectorAll('.town-section').forEach(section => observer.observe(section));
     return () => { observer.disconnect(); map.current?.remove(); };
@@ -76,36 +75,41 @@ export default function TownTour() {
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-slate-950 overflow-hidden">
+      {/* BRANDING BADGE */}
       <div className="fixed top-4 left-4 z-50 bg-blue-600/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg border border-blue-400/50">
         <span className="text-white font-black text-[9px] uppercase tracking-widest">Hill Realty Tour</span>
       </div>
 
-      {/* MAP VIEW: 40% Height on mobile to save space */}
-      <div className="w-full h-[40vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
+      {/* MAP VIEW: 70% Height on mobile for that "Big" feel */}
+      <div className="w-full h-[70vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
         <div ref={mapContainer} className="w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-120px_100px_rgba(2,6,23,1)]" />
+        {/* Deeper shadow to blend the text area into the map */}
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-150px_120px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* STORY CONTENT: 60% Height to allow titles to show */}
-      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[40vh] md:mt-0 pb-[60vh]">
+      {/* STORY CONTENT: Overlaps the bottom of the map */}
+      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0 pb-[100vh]">
         {TOWNS.map((town) => (
-          <section key={town.name} data-town={town.name} className="town-section h-[60vh] md:h-screen snap-start flex flex-col justify-start pt-16 px-8 md:px-12 bg-slate-950/95 backdrop-blur-sm md:bg-transparent" >
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-1 leading-none">{town.name}</h2>
-            <div className="w-8 h-1 bg-blue-600 mb-3" />
-            <p className="text-slate-300 text-xs md:text-lg leading-relaxed max-w-md italic mb-4">"{town.desc}"</p>
-            <div className="space-y-1.5">
-              <span className="text-blue-500 font-bold text-[9px] uppercase tracking-widest">Attractions</span>
-              <ul className="grid grid-cols-1 gap-1">
-                {town.attractions.map(attr => (
-                  <li key={attr} className="text-slate-400 text-[11px] flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-blue-600" /> {attr}
-                  </li>
-                ))}
-              </ul>
+          <section key={town.name} data-town={town.name} className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-end pb-8 px-8 md:px-12 md:bg-transparent" >
+            <div className="bg-slate-950/60 backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-2xl">
+              <h2 className="text-3xl font-black text-white mb-1 leading-none">{town.name}</h2>
+              <div className="w-8 h-0.5 bg-blue-600 mb-3" />
+              <p className="text-slate-300 text-xs leading-relaxed italic mb-4">"{town.desc}"</p>
+              
+              <div className="space-y-1">
+                <span className="text-blue-500 font-bold text-[8px] uppercase tracking-widest">Attractions</span>
+                <div className="flex flex-wrap gap-2">
+                  {town.attractions.map(attr => (
+                    <span key={attr} className="text-slate-400 text-[10px] bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                       {attr}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
         ))}
-        {/* HUGE BOTTOM SPACER: Essential for the final Cape Charles scroll */}
+        {/* SPACER FOR CAPE CHARLES */}
         <div className="h-[100vh] pointer-events-none" />
       </div>
     </main>
