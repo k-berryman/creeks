@@ -4,18 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Using the environment variable for security
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1Ijoia2FpdGxpbmJlcnJ5bWFud2ViZGV2IiwiYSI6ImNtbnBiZ2Q0eTJmd2gycXE2aDByZTV3NGEifQ.UuYKRnm3UmXWe3-dv-pinA'; 
 
 export default function CreekMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   
-  // Toggle States
+  // TOGGLE STATES
   const [showCreeks, setShowCreeks] = useState(true);
   const [showFlood, setShowFlood] = useState(false);
 
-  // IDs - Verify these match your Studio Layer names exactly
+  // LAYER IDs - These MUST match your Mapbox Studio names
   const CREEK_LAYER_ID = 'creeks-1-6059c4';
   const FLOOD_LAYER_ID = 'Master_Flood_Zones-json'; 
 
@@ -31,14 +30,13 @@ export default function CreekMap() {
     });
 
     map.current.on('load', () => {
-      // MAGNETIC CLICK LOGIC (24px hit area for mobile)
+      // MAGNETIC CLICK LOGIC (Works only when showCreeks is true)
       map.current?.on('click', (e) => {
-        // Only trigger popups if creeks are actually visible
         if (!showCreeks) return; 
 
         const bbox: [mapboxgl.PointLike, mapboxgl.PointLike] = [
-          [e.point.x - 12, e.point.y - 12],
-          [e.point.x + 12, e.point.y + 12]
+          [e.point.x - 15, e.point.y - 15],
+          [e.point.x + 15, e.point.y + 15]
         ];
 
         const features = map.current?.queryRenderedFeatures(bbox, {
@@ -47,7 +45,7 @@ export default function CreekMap() {
 
         if (!features?.length) return;
         const props = features[0].properties;
-        const name = props?.FULLNAME || props?.name || props?.GNIS_Name || "Eastern Shore Waterway";
+        const name = props?.FULLNAME || props?.name || "Eastern Shore Waterway";
 
         new mapboxgl.Popup({ closeButton: false, offset: 15 })
           .setLngLat(e.lngLat)
@@ -62,24 +60,25 @@ export default function CreekMap() {
     });
 
     return () => map.current?.remove();
-  }, [showCreeks]); // Dependencies ensure click logic knows when creeks are hidden
+  }, [showCreeks]);
 
-  // --- BULLETPROOF OPACITY-BASED TOGGLE ---
+  // --- THE DEFINITIVE TOGGLE LOGIC ---
   useEffect(() => {
     if (!map.current) return;
 
     const updateLayers = () => {
-      // Toggle Creeks (Opacity 1 or 0 keeps the layer active but hidden)
+      // Toggle Creeks (Using Opacity 1 or 0 keeps the layer active but hidden)
       if (map.current?.getLayer(CREEK_LAYER_ID)) {
         map.current.setPaintProperty(CREEK_LAYER_ID, 'line-opacity', showCreeks ? 1 : 0);
       }
 
-      // Toggle Flood (Opacity 0.35 or 0)
+      // Toggle Flood (Using Opacity 0.35 or 0)
       if (map.current?.getLayer(FLOOD_LAYER_ID)) {
         map.current.setPaintProperty(FLOOD_LAYER_ID, 'fill-opacity', showFlood ? 0.35 : 0);
       }
     };
 
+    // Ensure the style is loaded before we try to change a property
     if (map.current.isStyleLoaded()) {
       updateLayers();
     } else {
@@ -110,8 +109,8 @@ export default function CreekMap() {
           </label>
         </div>
         
-        <p className="mt-4 text-[9px] text-slate-400 italic text-center font-medium">
-          {showCreeks ? "Tap any creek for waterway data" : "Analyze property layers above"}
+        <p className="mt-4 text-[9px] text-slate-400 italic text-center font-medium leading-relaxed">
+          {showCreeks ? "Tap any creek for waterway data" : "Layers hidden. Toggle above."}
         </p>
       </div>
 
