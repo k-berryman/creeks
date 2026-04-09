@@ -52,14 +52,14 @@ export default function TownTour() {
     map.current.on('style.load', () => {
       map.current?.addSource('mapbox-dem', { 'type': 'raster-dem', 'url': 'mapbox://mapbox.mapbox-terrain-dem-v1', 'tileSize': 512 });
       map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-      // INITIAL LABEL SET TO GREENBACKVILLE
       map.current?.addSource('town-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: TOWNS[0].coords }, properties: { title: TOWNS[0].name } }] } });
       map.current?.addLayer({ id: 'town-label-layer', type: 'symbol', source: 'town-labels', layout: { 'text-field': ['get', 'title'], 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-size': 28, 'text-anchor': 'center' }, paint: { 'text-color': '#ffffff', 'text-halo-color': '#000000', 'text-halo-width': 2.5 } });
     });
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+        // More sensitive threshold (0.4) to ensure flight triggers on small screens
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
           const townName = entry.target.getAttribute('data-town');
           const town = TOWNS.find(t => t.name === townName);
           if (town && map.current) {
@@ -68,7 +68,7 @@ export default function TownTour() {
           }
         }
       });
-    }, { threshold: [0.5] });
+    }, { threshold: [0.4] });
 
     document.querySelectorAll('.town-section').forEach(section => observer.observe(section));
     return () => { observer.disconnect(); map.current?.remove(); };
@@ -76,21 +76,20 @@ export default function TownTour() {
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-slate-950 overflow-hidden">
-      {/* BRANDING BADGE */}
       <div className="fixed top-4 left-4 z-50 bg-blue-600/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg border border-blue-400/50">
         <span className="text-white font-black text-[9px] uppercase tracking-widest">Hill Realty Tour</span>
       </div>
 
-      {/* MAP VIEW: FIXED AT 50% HEIGHT */}
-      <div className="w-full h-[50vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
+      {/* MAP VIEW: 40% Height on mobile to save space */}
+      <div className="w-full h-[40vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
         <div ref={mapContainer} className="w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-100px_80px_rgba(2,6,23,1)]" />
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-120px_100px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* STORY CONTENT: 50% HEIGHT SCROLLING */}
-      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[50vh] md:mt-0 pb-[10vh]">
+      {/* STORY CONTENT: 60% Height to allow titles to show */}
+      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[40vh] md:mt-0 pb-[60vh]">
         {TOWNS.map((town) => (
-          <section key={town.name} data-town={town.name} className="town-section h-[50vh] md:h-screen snap-center flex flex-col justify-start pt-12 px-8 md:px-12 bg-slate-950/95 backdrop-blur-sm md:bg-transparent" >
+          <section key={town.name} data-town={town.name} className="town-section h-[60vh] md:h-screen snap-start flex flex-col justify-start pt-16 px-8 md:px-12 bg-slate-950/95 backdrop-blur-sm md:bg-transparent" >
             <h2 className="text-3xl md:text-5xl font-black text-white mb-1 leading-none">{town.name}</h2>
             <div className="w-8 h-1 bg-blue-600 mb-3" />
             <p className="text-slate-300 text-xs md:text-lg leading-relaxed max-w-md italic mb-4">"{town.desc}"</p>
@@ -106,7 +105,7 @@ export default function TownTour() {
             </div>
           </section>
         ))}
-        {/* THE CAPE CHARLES FIX: EXTRA SPACE AT BOTTOM */}
+        {/* HUGE BOTTOM SPACER: Essential for the final Cape Charles scroll */}
         <div className="h-[100vh] pointer-events-none" />
       </div>
     </main>
