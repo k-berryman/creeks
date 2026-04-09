@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1Ijoia2FpdGxpbmJlcnJ5bWFud2ViZGV2IiwiYSI6ImNtbnBiZ2Q0eTJmd2gycXE2aDByZTV3NGEifQ.UuYKRnm3UmXWe3-dv-pinA';
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'your_token_here';
 
 const TOWNS = [
   { name: "Greenbackville", coords: [-75.405, 38.001], desc: "The northern gateway where Maryland meets Virginia's coastal charm.", attractions: ["Captain's Cove Golf", "Bayside Marina", "Quiet Kayak Launches"] },
@@ -39,58 +39,30 @@ export default function TownTour() {
     if (!mapContainer.current) return;
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    // FORCE INITIAL STATE ON CREATION
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-streets-v12', 
-      center: TOWNS[0].coords as [number, number], 
-      zoom: 13.5,
-      pitch: 70, 
-      bearing: -15,
+      center: [-75.405, 38.001] as [number, number], 
+      zoom: 5, // Start even further out for a longer zoom
+      pitch: 0,
       antialias: true
     });
 
-    map.current.on('style.load', () => {
-      // 3D TERRAIN
-      map.current?.addSource('mapbox-dem', { 'type': 'raster-dem', 'url': 'mapbox://mapbox.mapbox-terrain-dem-v1', 'tileSize': 512 });
-      map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-
-      // FORCE INITIAL LABEL: GREENBACKVILLE
-      map.current?.addSource('town-labels', { 
-        type: 'geojson', 
-        data: { 
-          type: 'FeatureCollection', 
-          features: [{ 
-            type: 'Feature', 
-            geometry: { type: 'Point', coordinates: TOWNS[0].coords }, 
-            properties: { title: TOWNS[0].name } 
-          }] 
-        } 
-      });
-
-      map.current?.addLayer({ 
-        id: 'town-label-layer', 
-        type: 'symbol', 
-        source: 'town-labels', 
-        layout: { 
-          'text-field': ['get', 'title'], 
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 
-          'text-size': 28, 
-          'text-anchor': 'center' 
-        }, 
-        paint: { 
-          'text-color': '#ffffff', 
-          'text-halo-color': '#000000', 
-          'text-halo-width': 2.5 
-        } 
-      });
-
-      // FINAL SAFETY: Force Greenbackville jump again once style is 100% ready
-      map.current?.jumpTo({
+    map.current.on('load', () => {
+      // SLOW CINEMATIC ZOOM (8 Seconds)
+      map.current?.flyTo({
         center: TOWNS[0].coords as [number, number],
         zoom: 13.5,
-        pitch: 70
+        pitch: 70,
+        bearing: -15,
+        duration: 8000, // 8000ms = 8 seconds
+        essential: true
       });
+
+      map.current?.addSource('mapbox-dem', { 'type': 'raster-dem', 'url': 'mapbox://mapbox.mapbox-terrain-dem-v1', 'tileSize': 512 });
+      map.current?.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+      map.current?.addSource('town-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: TOWNS[0].coords }, properties: { title: TOWNS[0].name } }] } });
+      map.current?.addLayer({ id: 'town-label-layer', type: 'symbol', source: 'town-labels', layout: { 'text-field': ['get', 'title'], 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-size': 28, 'text-anchor': 'center' }, paint: { 'text-color': '#ffffff', 'text-halo-color': '#000000', 'text-halo-width': 2.5 } });
     });
 
     const observer = new IntersectionObserver((entries) => {
@@ -100,7 +72,7 @@ export default function TownTour() {
           const town = TOWNS.find(t => t.name === townName);
           if (town && map.current) {
             updateMapLabel(town);
-            map.current.flyTo({ center: town.coords as [number, number], zoom: 13.5, speed: 0.6, essential: true });
+            map.current.flyTo({ center: town.coords as [number, number], zoom: 13.5, speed: 0.5, essential: true });
           }
         }
       });
@@ -116,28 +88,23 @@ export default function TownTour() {
         <span className="text-white font-black text-[9px] uppercase tracking-widest text-center">Hill Realty Tour</span>
       </div>
 
-      {/* MAP VIEW: 60% Height */}
-      <div className="w-full h-[60vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
+      <div className="w-full h-[65vh] md:h-screen md:w-2/3 md:order-2 fixed top-0 md:relative z-0">
         <div ref={mapContainer} className="w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-140px_100px_rgba(2,6,23,1)]" />
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-160px_120px_rgba(2,6,23,1)]" />
       </div>
 
-      {/* STORY CONTENT: Centered text blocks with start-snapping */}
-      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[60vh] md:mt-0 pb-[100vh]">
+      <div className="w-full md:w-1/3 h-screen overflow-y-scroll snap-y snap-mandatory z-10 no-scrollbar md:order-1 relative mt-[55vh] md:mt-0 pb-[100vh]">
         {TOWNS.map((town) => (
-          <section key={town.name} data-town={town.name} className="town-section h-[40vh] md:h-screen snap-start flex flex-col justify-start pt-6 px-6 md:px-12" >
+          <section key={town.name} data-town={town.name} className="town-section h-[45vh] md:h-screen snap-start flex flex-col justify-start pt-24 px-6 md:px-12" >
             <div className="bg-slate-950/75 backdrop-blur-md p-5 rounded-2xl border border-white/10 shadow-2xl">
               <h2 className="text-2xl md:text-5xl font-black text-white mb-0.5 leading-none">{town.name}</h2>
               <div className="w-8 h-0.5 bg-blue-600 mb-2" />
               <p className="text-slate-300 text-[11px] leading-relaxed italic mb-3">"{town.desc}"</p>
-              
               <div className="space-y-1">
                 <span className="text-blue-500 font-bold text-[8px] uppercase tracking-widest">Attractions</span>
                 <div className="flex flex-wrap gap-1.5">
                   {town.attractions.map(attr => (
-                    <span key={attr} className="text-slate-400 text-[9px] bg-white/5 px-2 py-0.5 rounded border border-white/5 whitespace-nowrap">
-                       {attr}
-                    </span>
+                    <span key={attr} className="text-slate-400 text-[9px] bg-white/5 px-2 py-0.5 rounded border border-white/5 whitespace-nowrap">{attr}</span>
                   ))}
                 </div>
               </div>
